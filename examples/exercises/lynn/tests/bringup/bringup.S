@@ -48,7 +48,7 @@ return_and_test:
     j sub_test
 
 return_sub_test:
-    j lw_test
+    j add_addi_test
 
 return_lw_test:
     j sw_test

@@ -4,30 +4,46 @@
 
 `include "parameters.svh"
 
-module riscvsingle (
-        input   logic           clk,
-        input   logic           reset,
-
-        output  logic [31:0]    PC,  // instruction memory target address
-        input   logic [31:0]    Instr, // instruction memory read data
-
-        output  logic [31:0]    IEUAdr,  // data memory target address
-        input   logic [31:0]    ReadData, // data memory read data
-        output  logic [31:0]    WriteData, // data memory write data
-
-        output  logic           MemEn,
-        output  logic           WriteEn,
-        output  logic [3:0]     WriteByteEn  // strobes, 1 hot stating weather a byte should be written on a store
+module riscvsingle(
+        input  logic        clk, reset,
+        output logic [31:0] PC,
+        input  logic [31:0] Instr,
+        output logic [31:0] IEUAdr,
+        input  logic [31:0] ReadData,
+        output logic [31:0] WriteData,
+        output logic        MemEn,
+        output logic        WriteEn,
+        output logic [3:0]  WriteByteEn
     );
 
-    logic [31:0] PCPlus4;
-    logic PCSrc;
-    logic Load;
+    logic [31:0] PCPlus4, LoadResult;
+    logic        PCSrc;
+    logic [1:0]  MemRW;
 
     ifu ifu(.clk, .reset, .PCSrc, .IEUAdr, .PC, .PCPlus4);
-    ieu ieu(.clk, .reset, .Instr, .PC, .PCPlus4, .PCSrc, .WriteByteEn,
-            .IEUAdr, .WriteData, .ReadData, .MemEn
-        );
 
-    assign WriteEn = |WriteByteEn;
+    ieu ieu(
+        .clk, .reset, .Instr,
+        .PC, .PCPlus4,
+        .PCSrc,
+        .MemRW,
+        .IEUAdr,
+        .WriteData,
+        .LoadResult
+    );
+
+    lsu lsu(
+        .ALUResult(IEUAdr),
+        .WriteData,
+        .ReadData,
+        .Funct3(Instr[14:12]),
+        .MemRW,
+        .IEUAdr,
+        .StoreData(WriteData),
+        .LoadResult,
+        .WriteByteEn,
+        .MemEn
+    );
+
+    assign WriteEn = MemRW[0];
 endmodule

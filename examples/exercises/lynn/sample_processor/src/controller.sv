@@ -1,65 +1,135 @@
-// riscvsingle.sv
-// RISC-V single-cycle processor
-// David_Harris@hmc.edu 2020
-
 `include "parameters.svh"
 
-module controller(
-        input   logic [6:0]   Op,
-        input   logic         Eq,
-        input   logic [2:0]   Funct3,
-        input   logic         Funct7b5,
-        output  logic         ALUResultSrc,
-        output  logic         ResultSrc,
-        output  logic [3:0]   WriteByteEn,
-        output  logic         PCSrc,
-        output  logic         RegWrite,
-        output  logic [1:0]   ALUSrc, ImmSrc,
-        output  logic [1:0]   ALUControl,
-        output  logic         MemEn
-    `ifdef DEBUG
-        , input   logic [31:0]  insn_debug
-    `endif
+module controller (
+        input  logic [6:0]  Op,
+        input  logic [2:0]  Funct3,
+        input  logic        Funct7b5,
+        input  logic        Eq, Lt, Ltu,
+
+        output logic        PCSrc,
+        output logic        ALUResultSrc,
+        output logic        ResultSrc,
+        output logic [1:0]  MemRW,
+        output logic [1:0]  ALUSrc,
+        output logic [2:0]  ImmSrc,
+        output logic        RegWrite,
+        output logic        W64,
+        output logic [2:0]  ALUSelect,
+        output logic        SubArith
     );
 
-    logic Branch, Jump;
-    logic Sub, ALUOp;
-    logic MemWrite;
-    logic [11:0] controls;
+    logic Branch, Jump, ALUOp;
 
-    // Main decoder
-    always_comb
-        case(Op)
-            // RegWrite_ImmSrc_ALUSrc_ALUOp_ALUResultSrc_MemWrite_ResultSrc_Branch_Jump_Load
-            7'b0000011: controls = 12'b1_00_01_0_0_0_1_0_0_1; // lw
-            7'b0100011: controls = 12'b0_01_01_0_0_1_0_0_0_1; // sw
-            7'b0110011: controls = 12'b1_xx_00_1_0_0_0_0_0_0; // R-type
-            7'b0010011: controls = 12'b1_00_01_1_0_0_0_0_0_0; // I-type ALU
-            7'b1100011: controls = 12'b0_10_11_0_0_0_0_1_0_0; // beq
-            7'b1101111: controls = 12'b1_11_11_0_1_0_0_0_1_0; // jal
+   // Main Decoder
+    always_comb begin
+        // defaults
+        {Branch, Jump}   = 2'b00;
+        ALUSrc           = 2'b00;
+        ImmSrc           = 3'b000;
+        ALUOp            = 1'b0;
+        ALUResultSrc     = 1'b0;
+        ResultSrc        = 1'b0;
+        RegWrite         = 1'b0;
+        MemRW            = 2'b00;
+        W64              = 1'b0;
+
+        case (Op)
+            7'h33: begin // R-type
+                RegWrite     = 1'b1;
+                ALUSrc       = 2'b00;
+                ALUOp        = 1'b1;
+            end
+            7'h13: begin // I-type ALU
+                RegWrite     = 1'b1;
+                ALUSrc       = 2'b01;
+                ImmSrc       = 3'b000;
+                ALUOp        = 1'b1;
+            end
+            7'h03: begin // loads
+                RegWrite     = 1'b1;
+                ALUSrc       = 2'b01;
+                ImmSrc       = 3'b000;
+                MemRW        = 2'b10;   // MemRead
+                ResultSrc    = 1'b1;
+            end
+            7'h23: begin // stores
+                ALUSrc       = 2'b01;
+                ImmSrc       = 3'b001;
+                MemRW        = 2'b01;   // MemWrite
+            end
+            7'h63: begin // branches
+                Branch       = 1'b1;
+                ALUSrc       = 2'b00;
+                ImmSrc       = 3'b010;
+            end
+            7'h6F: begin // jal
+                Jump         = 1'b1;
+                ALUSrc       = 2'b11;
+                ImmSrc       = 3'b011;
+                ResultSrc    = 1'b1;
+                RegWrite     = 1'b1;
+            end
+            7'h67: begin // jalr
+                Jump         = 1'b1;
+                ALUSrc       = 2'b01;
+                ImmSrc       = 3'b000;
+                ResultSrc    = 1'b1;
+                RegWrite     = 1'b1;
+            end
+            7'h37: begin // lui
+                ALUSrc       = 2'b01;
+                ImmSrc       = 3'b100;
+                ALUResultSrc = 1'b1;
+                RegWrite     = 1'b1;
+            end
+            7'h17: begin // auipc
+                ALUSrc       = 2'b11;
+                ImmSrc       = 3'b100;
+                RegWrite     = 1'b1;
+            end
             default: begin
-                `ifdef DEBUG
-                    controls = 12'bx_xx_xx_x_x_x_x_x_x_x; // non-implemented instruction
-                    if ((insn_debug !== 'x)) begin
-                        $display("Instruction not implemented: %h", insn_debug);
-                        $finish(-1);
-                    end
-                `else
-                    controls = 12'b0; // non-implemented instruction
-                `endif
+                // all signals already defaulted to 0
             end
         endcase
+    end
 
-    assign {RegWrite, ImmSrc, ALUSrc, ALUOp, ALUResultSrc, MemWrite,
-        ResultSrc, Branch, Jump, MemEn} = controls;
+    // ALU Decoder
+    logic Slt, Sltu, Sra, Sub;
 
-    // ALU Control Logic
-    assign Sub = ALUOp & ((Funct3 == 3'b000) & Funct7b5 & Op[5] | (Funct3 == 3'b010)); // subtract or SLT
-    assign ALUControl = {Sub, ALUOp};
+    always_comb begin
+        ALUSelect = 3'b000; // default: add
+        SubArith  = 1'b0;
 
-    // PCSrc logic
-    assign PCSrc = Branch & Eq | Jump;
+        if (ALUOp) begin
+            ALUSelect = Funct3;
 
-    // MemWrite logic
-    assign WriteByteEn = {(4){MemWrite}}; // currently assigns all 4 bytes to MemWrite
+            Slt      = (Funct3 == 3'b010);
+            Sltu     = (Funct3 == 3'b011);
+            Sra      = (Funct3 == 3'b101) & Funct7b5;
+            Sub      = (Funct3 == 3'b000) & Funct7b5 & Op[5];
+            SubArith = Slt | Sltu | Sra | Sub;
+        end else begin
+            Slt   = 1'b0;
+            Sltu  = 1'b0;
+            Sra   = 1'b0;
+            Sub   = 1'b0;
+        end
+    end
+
+    // Branch Logic
+    logic BranchTaken;
+
+    always_comb
+        case (Funct3)
+            3'b000: BranchTaken = Eq;
+            3'b001: BranchTaken = ~Eq;
+            3'b100: BranchTaken = Lt;
+            3'b101: BranchTaken = ~Lt;
+            3'b110: BranchTaken = Ltu;
+            3'b111: BranchTaken = ~Ltu;
+            default: BranchTaken = 1'b0;
+        endcase
+
+    assign PCSrc = (Branch & BranchTaken) | Jump;
+
 endmodule
