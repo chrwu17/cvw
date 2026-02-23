@@ -59,7 +59,7 @@ module controller (
             end
             7'h63: begin // branches
                 Branch       = 1'b1;
-                ALUSrc       = 2'b00;
+                ALUSrc       = 2'b11;
                 ImmSrc       = 3'b010;
             end
             7'h6F: begin // jal

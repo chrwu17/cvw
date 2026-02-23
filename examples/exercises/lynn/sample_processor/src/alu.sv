@@ -36,8 +36,8 @@ module alu(
             3'b011: ALUResult = SLTU;                       // sltu
             3'b100: ALUResult = SrcA ^ SrcB;                // xor
             3'b101: ALUResult = SubArith ?
-                        $signed(SrcA) >>> shiftAmount :     // sra
-                        SrcA >> shiftAmount;                // srl
+                $unsigned($signed(SrcA) >>> shiftAmount) :  // sra
+                SrcA >> shiftAmount;                        // srl
             3'b110: ALUResult = SrcA | SrcB;                // or
             3'b111: ALUResult = SrcA & SrcB;                // and
             default: ALUResult = 32'bx;

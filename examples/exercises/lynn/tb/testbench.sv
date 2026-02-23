@@ -34,9 +34,12 @@ module testbench;
 
   // Simple reset sequence
   initial begin
-    reset = 1;
-    #10;         // hold reset for a bit
-    reset = 0;   // release reset
+      reset = 1;
+      @(posedge clk);   // wait for first posedge (t=5)
+      @(posedge clk);   // wait for second posedge (t=15)
+      @(negedge clk);   // wait for negedge (t=20) — memory now initialized
+      #1;               // small delay to clear delta races
+      reset = 0;        // deassert between clock edges, not coinciding with any edge
   end
 
   // Instruction side interface (byte addresses)
@@ -50,6 +53,7 @@ module testbench;
   logic                           WriteEn;
   logic                           MemEn;
   logic [`XLEN/8-1:0]             WriteByteEn;   // byte enables, one per 8 bits
+  logic [`XLEN-1:0] entry_addr_sig;
 
 /* ------- DEBUG PRINTS ------- */
 
@@ -111,6 +115,7 @@ module testbench;
   `PROCESSOR_TOP dut (
     .clk            (clk),
     .reset          (reset),
+    .entry_addr     (entry_addr_sig),   // ← add this line
 
     // Instruction memory interface (byte address)
     .PC             (PC),
@@ -123,7 +128,7 @@ module testbench;
     .MemEn          (MemEn),
     .WriteEn        (WriteEn),
     .WriteByteEn    (WriteByteEn)
-  );
+);
 
 /* ------- TOHOST Handling ------- */
 
@@ -180,15 +185,17 @@ always @(negedge clk) begin
 end
 
 initial begin
+    TO_HOST_ADR    = '0;
+    entry_addr_sig = 32'h8000_0000;  // safe default
 
-    TO_HOST_ADR = '0; // default
-    void'($value$plusargs("TOHOST_ADDR=%h", TO_HOST_ADR)); // override if provided
+    void'($value$plusargs("TOHOST_ADDR=%h", TO_HOST_ADR));
+    void'($value$plusargs("ENTRY_ADDR=%h",  entry_addr_sig));
+
     $display("[TB] TOHOST_ADDR = 0x%h", TO_HOST_ADR);
+    $display("[TB] ENTRY_ADDR  = 0x%h", entry_addr_sig);
 
-    // Wait until reset deasserts
     @(negedge reset);
     $display("[%0t] INFO: Starting simulation.", $time);
-
 end
 
 /* ------- Safety jump-to-self exit ------- */

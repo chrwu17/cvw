@@ -15,6 +15,7 @@
 .extern and_andi_test
 .extern beq_test
 .extern jal_test
+.extern newInstructions_test
 .extern pass
 
 .section .text.init
@@ -33,6 +34,7 @@
 .globl return_and_andi_test
 .globl return_beq_test
 .globl return_jal_test
+.globl return_newInstructions_test
 
 .type main, @function
 main:
@@ -78,4 +80,7 @@ return_beq_test:
     j jal_test
 
 return_jal_test:
+    j newInstructions_test
+
+return_newInstructions_test:
     j pass
