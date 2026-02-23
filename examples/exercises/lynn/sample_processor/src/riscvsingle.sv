@@ -16,7 +16,7 @@ module riscvsingle(
         output logic [3:0]  WriteByteEn
     );
 
-    logic [31:0] PCPlus4, LoadResult;
+    logic [31:0] PCPlus4, LoadResult, StoreData, ALUResult, RawWriteData;
     logic        PCSrc;
     logic [1:0]  MemRW;
 
@@ -27,23 +27,25 @@ module riscvsingle(
         .PC, .PCPlus4,
         .PCSrc,
         .MemRW,
-        .IEUAdr,
-        .WriteData,
+        .IEUAdr(ALUResult),
+        .WriteData(RawWriteData),
         .LoadResult
     );
 
     lsu lsu(
-        .ALUResult(IEUAdr),
-        .WriteData,
+        .ALUResult,
+        .WriteData(RawWriteData),
         .ReadData,
         .Funct3(Instr[14:12]),
         .MemRW,
         .IEUAdr,
-        .StoreData(WriteData),
+        .StoreData,
         .LoadResult,
         .WriteByteEn,
         .MemEn
     );
 
-    assign WriteEn = MemRW[0];
+    assign WriteEn   = MemRW[0];
+    assign WriteData = StoreData;  // processed store data goes to memory
+
 endmodule

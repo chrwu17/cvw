@@ -4,11 +4,11 @@ module controller (
         input  logic [6:0]  Op,
         input  logic [2:0]  Funct3,
         input  logic        Funct7b5,
-        input  logic        Eq, Lt, Ltu,
+        input  logic        Eq, LT, LTU,
 
         output logic        PCSrc,
         output logic        ALUResultSrc,
-        output logic        ResultSrc,
+        output logic [1:0]  ResultSrc,
         output logic [1:0]  MemRW,
         output logic [1:0]  ALUSrc,
         output logic [2:0]  ImmSrc,
@@ -50,7 +50,7 @@ module controller (
                 ALUSrc       = 2'b01;
                 ImmSrc       = 3'b000;
                 MemRW        = 2'b10;   // MemRead
-                ResultSrc    = 1'b1;
+                ResultSrc    = 2'b10;
             end
             7'h23: begin // stores
                 ALUSrc       = 2'b01;
@@ -66,14 +66,14 @@ module controller (
                 Jump         = 1'b1;
                 ALUSrc       = 2'b11;
                 ImmSrc       = 3'b011;
-                ResultSrc    = 1'b1;
+                ResultSrc    = 2'b01;
                 RegWrite     = 1'b1;
             end
             7'h67: begin // jalr
                 Jump         = 1'b1;
                 ALUSrc       = 2'b01;
                 ImmSrc       = 3'b000;
-                ResultSrc    = 1'b1;
+                ResultSrc    = 2'b01;
                 RegWrite     = 1'b1;
             end
             7'h37: begin // lui
@@ -123,10 +123,10 @@ module controller (
         case (Funct3)
             3'b000: BranchTaken = Eq;
             3'b001: BranchTaken = ~Eq;
-            3'b100: BranchTaken = Lt;
-            3'b101: BranchTaken = ~Lt;
-            3'b110: BranchTaken = Ltu;
-            3'b111: BranchTaken = ~Ltu;
+            3'b100: BranchTaken = LT;
+            3'b101: BranchTaken = ~LT;
+            3'b110: BranchTaken = LTU;
+            3'b111: BranchTaken = ~LTU;
             default: BranchTaken = 1'b0;
         endcase
 

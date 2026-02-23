@@ -31,13 +31,13 @@ module alu(
     always_comb begin
         case (ALUSelect)
             3'b000: ALUResult = Sum;                        // add/sub
-            3'b001: ALUResult = SrcA << ShiftAmount;        // sll
+            3'b001: ALUResult = SrcA << shiftAmount;        // sll
             3'b010: ALUResult = SLT;                        // slt
             3'b011: ALUResult = SLTU;                       // sltu
             3'b100: ALUResult = SrcA ^ SrcB;                // xor
             3'b101: ALUResult = SubArith ?
-                        $signed(SrcA) >>> ShiftAmount :     // sra
-                        SrcA >> ShiftAmount;                // srl
+                        $signed(SrcA) >>> shiftAmount :     // sra
+                        SrcA >> shiftAmount;                // srl
             3'b110: ALUResult = SrcA | SrcB;                // or
             3'b111: ALUResult = SrcA & SrcB;                // and
             default: ALUResult = 32'bx;

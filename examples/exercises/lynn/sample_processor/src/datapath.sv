@@ -10,7 +10,7 @@ module datapath(
         input  logic [2:0]  ALUSelect,
         input  logic        SubArith,
         input  logic        ALUResultSrc,
-        input  logic        ResultSrc,
+        input  logic [1:0]  ResultSrc,
         output logic        Eq, LT, LTU,
         input  logic [31:0] PC, PCPlus4,
         input  logic [31:0] Instr,
@@ -46,14 +46,17 @@ module datapath(
     // ALU
     alu alu(.SrcA, .SrcB, .ALUSelect, .SubArith, .ALUResult, .IEUAdr);
 
-    //IEUResult
-    always_comb begin
-        if (ALUResultSrc) IEUResult = PCPlus4;    // for jal/jalr
-        else             IEUResult = ALUResult;   // normal
-    end
+    // IEUResult
+    assign IEUResult = ALUResultSrc ? ImmExt : ALUResult;
 
     // Result
-    assign Result = ResultSrc ? LoadResult : IEUResult;
+    always_comb
+        case (ResultSrc)
+            2'b00:   Result = IEUResult;   // normal
+            2'b01:   Result = PCPlus4;     // jal/jalr return address
+            2'b10:   Result = LoadResult;  // load
+            default: Result = IEUResult;
+        endcase
 
     assign WriteData = R2;
 endmodule
