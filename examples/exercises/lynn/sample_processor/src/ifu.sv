@@ -11,6 +11,9 @@ module ifu(
     );
 
     logic [31:0] PCNext;
+    logic [31:0] BranchTarget;
+
+    assign BranchTarget = IEUAdr & 32'hFFFFFFFE;
 
     always_ff @(posedge clk) begin
         if (reset)  PC <= entry_addr;
@@ -18,5 +21,5 @@ module ifu(
     end
 
     adder pcadd4(PC, 32'd4, PCPlus4);
-    mux2 #(32) pcmux(PCPlus4, IEUAdr, PCSrc, PCNext);
+    mux2 #(32) pcmux(PCPlus4, BranchTarget, PCSrc, PCNext);
 endmodule
