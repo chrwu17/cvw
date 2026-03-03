@@ -19,7 +19,7 @@ module datapath(
         output logic [31:0] IEUAdr,
         output logic [31:0] WriteData,
         input  logic [31:0] LoadResult,
-        input  logic [31:0] CSRResult,
+        input  logic [31:0] CSRReadData,
         output logic [31:0] Result
     );
 
@@ -58,7 +58,7 @@ module datapath(
             2'b00:   Result = IEUResult;   // normal
             2'b01:   Result = PCPlus4;     // jal/jalr return address
             2'b10:   Result = LoadResult;  // load
-            2'b11:   Result = CSRResult;
+            2'b11:   Result = CSRReadData;
             default: Result = IEUResult;
         endcase
 

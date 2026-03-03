@@ -81,7 +81,7 @@ module ieu(
         .IEUAdr,
         .WriteData,
         .LoadResult,
-        .CSRResult(CSRReadData),
+        .CSRReadData,
         .Result
     );
 

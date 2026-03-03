@@ -43,16 +43,18 @@ module controller (
         ImmSrc           = 3'b000;
         ALUOp            = 1'b0;
         ALUResultSrc     = 1'b0;
-        ResultSrc        = 1'b0;
+        ResultSrc        = 2'b00;
         RegWrite         = 1'b0;
         MemRW            = 2'b00;
         W64              = 1'b0;
         CSREn            = 1'b0;
+        MulOp            = 1'b0;
+        MulSel           = 2'b00;
         IsLoad           = 1'b0;
-        IsStore         = 1'b0;
-        IsJump          = 1'b0;
-        IsCSR           = 1'b0;
-        IsALUImm        = 1'b0;
+        IsStore          = 1'b0;
+        IsJump           = 1'b0;
+        IsCSR            = 1'b0;
+        IsALUImm         = 1'b0;
 
 
         case (Op)
