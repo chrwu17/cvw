@@ -20,7 +20,7 @@ module riscvsingle(
     logic        PCSrc;
     logic [1:0]  MemRW;
 
-    ifu ifu(.clk, .reset, .PCSrc, .PC, .PCPlus4);
+    ifu ifu(.clk, .reset, .PCSrc, .IEUAdr, .PC, .PCPlus4);
 
     ieu ieu(
         .clk, .reset, .Instr,
